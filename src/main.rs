@@ -1,80 +1,48 @@
-// use isis-eps-api::*;
-use command_id::*;
-use rust_udp::*;
-use cubeos_service::Command;
-use std::thread;
+use cubeos_service::*;
 use std::time::Duration;
-
-// use std::convert::TryFrom;
+use isis_eps_api::*;
 
 // CommandID Enum from Service can not be imported here, 
 // copy-paste list of commands from service into this CommandID macro,
 // to create a copy that can be used in the App
-command_id!{
-    //Keep these command IDs reserved, these commands are implemented in the CubeOS service
-    Ping,
-    Get,
-    Set,
-    //Add your commands here
-    EpsPing,
-    SystemStatus,
-    OvercurrentState,
-    AbfState,
-    PiuHk,
-    SysReset,
-    ShutDownAll,
-    WatchdogReset,
+app_macro!{
+    isis_eps_service: Eps {
+        query: EpsPing => fn eps_ping(&self) -> Result<()>; out: ();
+        query: Status => fn system_status(&self) -> Result<SystemStatus>; out: SystemStatus;
+        query: OvercurrentState => fn overcurrent_state(&self) -> Result<OverCurrentFaultState>; out: OverCurrentFaultState;
+        // query: AbfState => fn abf_state(&self) -> Result<ABFState>; out: ABFState;
+        // query: PduHk => fn pdu_hk(&self, mode: PDUHkSel) -> Result<PDUHk>; out: PDUHk;
+        // query: PbuHk => fn pbu_hk(&self, mode: PBUHkSel) -> Result<PBUHk>; out: PBUHk;
+        query: PiuHk => fn piu_hk(&self, mode: PIUHkSel) -> Result<PIUHk>; out: PIUHk;
+        // query: PcuHk => fn pcu_hk(&self, mode: PCUHkSel) -> Result<PCUHk>; out: PCUHk;
+        query: GetConfigParamWrite => fn get_config_para_write(&self, param: ConfigParamWrite) -> EpsResult<Output>; out: Output;
+        query: GetConfigParamRead => fn get_config_para_read(&self, param: ConfigParamRead) -> EpsResult<Output>; out: Output;
+        query: SetConfigParamU32 => fn set_config_para_u32(&self, param: ConfigParamWriteU32, value: u32) -> EpsResult<Output>; out: Output;
+        query: SetConfigParamU16 => fn set_config_para_u16(&self, param: ConfigParamWriteU16, value: u16) -> EpsResult<Output>; out: Output;
+        query: SetConfigParamU8 => fn set_config_para_u8(&self, param: ConfigParamWriteU8, value: u8) -> EpsResult<Output>; out: Output;
+        query: SetConfigParamI16 => fn set_config_para_i16(&self, param: ConfigParamWriteI16, value: i16) -> EpsResult<Output>; out: Output;
+        query: SetConfigParamI8 => fn set_config_para_i8(&self, param: ConfigParamWriteI8, value: i8) -> EpsResult<Output>; out: Output;
+        query: ResetConfigParam => fn reset_param(&self, param: ConfigParamWrite) -> EpsResult<Output>; out: Output;
+        mutation: SysReset => fn sys_reset(&self, ret_key: u8) -> Result<()>;
+        mutation: ShutDownAll =>fn shutdown_all(&self) -> EpsResult<()>;
+        mutation: WatchdogReset => fn watchdog_reset(&self) -> EpsResult<()>;
+        mutation: SetGroupOutputs => fn set_group_outputs(&self, typ_group: BusGroup, channels: Vec<u8>) -> EpsResult<()>;
+        mutation: SetSingleOutput => fn set_single_output(&self, typ_channel: BusChannel, eps_ch_idx: u8) -> EpsResult<()>;
+        mutation: ModeSwitchFn => fn mode_switch(&self, mode: ModeSwitch) -> EpsResult<()>;
+        mutation: CorrectTime => fn correct_time(&self, time_correction: i32) -> EpsResult<()>;
+        mutation: ResetAllCounters => fn reset_all_counters(&self) -> EpsResult<()>;        
+        mutation: ResetAllConf => fn reset_all_conf(&self) -> EpsResult<()>;
+        mutation: LoadConfig => fn load_config(&self) -> EpsResult<()>;
+        mutation: SaveConfig => fn save_config(&self) -> EpsResult<()>;
+        mutation: ForceSaveConfig => fn force_save_config(&self) -> EpsResult<()>;
+    }
 }
 
-// This example App 
-// - pings the Example Service
-// - performs a Telemetry request
-// - overwrites variable of the service
-// - performs a second Telemetry request to check the overwritten data
-fn main() -> Result<(),CubeOSError>{
-
-    // App IP + Service IP
-    let app_host = "127.0.0.1:9029".to_string();
-    let service = "127.0.0.1:8021".to_string();
-
-    // The App opens a UDP Connection by binding the app_host IP
-    // This connection can then be used to transfer commands
-    let connection = Connection::from_path(app_host,service);
-
-
- 
-    // Send command to Service and wait for reply
-    //      
-    // connection.transfer(command: Vec<u8>, rx_len: usize) -> Result<Vec<u8>>
-    //
-    // # Arguments:
-    // command: Vec<u8> - Serialized Command to send to the service/payload
-    // rx_len: usize - Length of read buffer/expected length of reply
-    // 
-    // # Output:
-    // cubeos_error::Result<Vec<u8>>
-    //
-    // Output can be deserialized to any API struct or enum with
-    // bincode::deserialize<E>(output)
-    // where E is a struct or enum defined in the API
-    //
+fn main() -> Result<()>{
     loop{
-        // Create a command
-        // 
-        // Arguments:
-        // `CommandID` -> command called
-        // `Input` -> Input for Command, here ()
+        // Ping the service
+        Eps::watchdog_reset()?;
 
-        let msg = Command::<CommandID,()>::serialize(CommandID::WatchdogReset,())?;
-        println!("{:?}",msg);
-
-        match connection.transfer(msg) {
-            Ok(r) => println!("{:?}",r),
-            Err(_) => println!("Error"),
-        }
-
-        thread::sleep(Duration::from_secs(60));
+        std::thread::sleep(Duration::from_secs(60));
     }
-    
-    // Ok(())
 }
