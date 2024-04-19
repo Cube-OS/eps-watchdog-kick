@@ -5,5 +5,12 @@ edition = "2018"
 
 [dependencies]
 cubeos-service = { git = "ssh://git@github.com/Cube-OS/cubeos-service.git", features = ["app"]}
-isis-eps-api = { git = "ssh://github.com/Cube-OS/isis-eps-api.git"}
+isis-eps-api = { git = "ssh://git@github.com/Cube-OS/isis-eps-api.git"}
 serde = "1.0"
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "z"
+panic = "abort"
+codegen-units = 1
